@@ -46,6 +46,37 @@ TEE path already works is never touched: behaviour is identical to not having
 the module, so it cannot regress a working device. It is gated on
 `FEATURE_STRONGBOX_KEYSTORE` and fails closed if StrongBox is absent.
 
+## When this helps, and when it does not
+
+This module fixes exactly one thing: an attestation key that **fails to
+generate** because the TEE path is broken, on a device that **has a working
+StrongBox** to fall back to. It produces a genuine hardware attestation and does
+**not** forge anything.
+
+It cannot help if:
+
+- **Your device has no StrongBox.** Check with `adb shell pm list features | grep
+  strongbox`. If that prints nothing (true for many phones, including most
+  OnePlus / Oppo models before the OnePlus 13), there is nothing to fall back to.
+- **X rejects your device for its boot state or integrity**, not for a keygen
+  crash. This module does not spoof `deviceLocked` or `verifiedBootState`; the
+  chain it produces reflects the real state of the device. On the reference
+  OnePlus 13 the genuine StrongBox attestation reports `deviceLocked = false` and
+  `verifiedBootState = orange`, and X accepts it, so a genuine chain is enough
+  there. On a device where X refuses an unlocked bootloader, a genuine chain will
+  not satisfy it.
+
+For those cases you need a **keybox-based** solution that mints a fully valid,
+forged attestation in software (no StrongBox required, and it can present a
+locked / verified chain):
+
+- [TEESimulator](https://github.com/JingMatrix/TEESimulator): set Operation mode
+  to *generate* and add `com.twitter.android` to its target apps.
+- tricky_store: add `com.twitter.android` to `target.txt` (needs a valid keybox).
+
+Do not run this module and a keybox solution against X at the same time; pick
+one. If you use a keybox tool for X, disable this module.
+
 ## Requirements
 
 - Rooted device (Magisk or KernelSU) with Zygisk / ReZygisk and LSPosed
@@ -121,15 +152,22 @@ Reproduced and confirmed on a OnePlus 13 (CPH2653), Android 16, security patch
 - With the module active, the same request is transparently regenerated on
   StrongBox: the resulting key reports `securityLevel = STRONGBOX` with a
   5-certificate chain.
+- The StrongBox attestation's RootOfTrust reports `deviceLocked = false` and
+  `verifiedBootState = orange` (the real state; this device's green/locked
+  `getprop` values come from a separate Play Integrity spoof and are not what the
+  attestation contains). X accepts this genuine chain on this device.
 
 ## Limitations
 
-- The fallback can only rescue a device that actually has StrongBox.
-- The premise is that X's backend accepts a StrongBox-securityLevel attestation
-  chain. Server-side rejection is the one failure a client-side keygen fallback
-  cannot observe (it produces no local exception). Even then, because the module
-  is TEE first, it only acts after the TEE keygen has already failed, so it never
-  makes a working device worse.
+- The fallback can only rescue a device that actually has StrongBox. Without it,
+  the module fails closed and does nothing. See "When this helps" above.
+- It never forges `deviceLocked` or `verifiedBootState`. If X rejects your
+  device for its boot state or a Play Integrity verdict rather than a keygen
+  crash, use a keybox solution (TEESimulator / tricky_store) instead.
+- Server-side rejection of a genuine chain is the one failure a client-side
+  keygen fallback cannot observe (it produces no local exception). Because the
+  module is TEE first, it only acts after the TEE keygen has already failed, so
+  it never makes a working device worse.
 
 ## License
 
