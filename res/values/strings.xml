@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">X Attestation Fix</string>
+    <string name="module_description">Forces X (Twitter) hardware key attestation onto StrongBox when the TEE Remote Key Provisioning path (CSR v2 / RKP) is broken. Version-agnostic. Scope to com.twitter.android.</string>
+</resources>

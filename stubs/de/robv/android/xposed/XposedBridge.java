@@ -8,4 +8,5 @@ public final class XposedBridge {
     public static Set<XC_MethodHook.Unhook> hookAllMethods(Class<?> c, String name, XC_MethodHook hook) { return null; }
     public static void log(String s) {}
     public static void log(Throwable t) {}
+    public static Object invokeOriginalMethod(Member method, Object thisObject, Object[] args) throws Throwable { return null; }
 }
