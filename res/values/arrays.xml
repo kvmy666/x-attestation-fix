@@ -2,5 +2,6 @@
 <resources>
     <string-array name="xposedscope">
         <item>com.twitter.android</item>
+        <item>com.google.android.gms</item>
     </string-array>
 </resources>

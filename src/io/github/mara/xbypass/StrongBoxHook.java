@@ -42,7 +42,15 @@ import java.security.spec.AlgorithmParameterSpec;
 public final class StrongBoxHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "XAttestFix";
-    private static final String TARGET_PACKAGE = "com.twitter.android";
+    // Packages we arm the StrongBox TEE-failover for. Original: com.twitter.android.
+    // Added Google Play Services so TapAndPay/Google Wallet attestation keys
+    // (CheckOrGetStorageKeyStep) fall back to the working StrongBox RKP chain
+    // when the device's TEE RKP path is broken.
+    private static final java.util.Set<String> TARGET_PACKAGES =
+            new java.util.HashSet<>(java.util.Arrays.asList(
+                    "com.twitter.android",
+                    "com.google.android.gms",
+                    "com.google.android.gms.unstable"));
 
     // Xposed additional-instance-field keys (in-memory tags; never touch the object's real fields).
     private static final String TAG_SB_SPEC = "xbypass_sb_spec";      // on a TEE spec: its StrongBox twin
@@ -53,7 +61,7 @@ public final class StrongBoxHook implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!TARGET_PACKAGE.equals(lpparam.packageName)) return;
+        if (!TARGET_PACKAGES.contains(lpparam.packageName)) return;
 
         try {
             // After each Builder.build(), if the produced spec is an attestation key, pre-compute a
